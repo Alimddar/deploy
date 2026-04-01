@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GalleryImage } from "../lib/gallery";
 
 type GalleryClientProps = {
@@ -9,26 +9,15 @@ type GalleryClientProps = {
   profileImage: string;
 };
 
-export function GalleryClient({
-  bannerImage,
-  images,
-  profileImage
-}: GalleryClientProps) {
+export function GalleryClient({ bannerImage, images, profileImage }: GalleryClientProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [showShadowStrip, setShowShadowStrip] = useState(false);
+  const [renderedCount, setRenderedCount] = useState(24);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const heroImage = bannerImage || images[0]?.url || "";
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowShadowStrip(window.scrollY > 80);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
+    setRenderedCount(24);
+  }, [images.length]);
 
   useEffect(() => {
     if (lightboxIndex === null) {
@@ -65,6 +54,32 @@ export function GalleryClient({
     };
   }, [images.length, lightboxIndex]);
 
+  useEffect(() => {
+    const node = loadMoreRef.current;
+
+    if (!node || renderedCount >= images.length) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry?.isIntersecting) {
+          setRenderedCount((current) => Math.min(current + 18, images.length));
+        }
+      },
+      {
+        rootMargin: "1200px 0px"
+      }
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [images.length, renderedCount]);
+
   function handleDownload(image: GalleryImage) {
     const anchor = document.createElement("a");
     anchor.href = `/api/download?file=${encodeURIComponent(image.name)}`;
@@ -75,66 +90,75 @@ export function GalleryClient({
   }
 
   const currentImage = lightboxIndex === null ? null : images[lightboxIndex];
+  const visibleImages = images.slice(0, renderedCount);
 
   return (
-    <>
-      <div className={`shadow-strip${showShadowStrip ? " show" : ""}`} />
-
-      <section className="hero has-bg">
-        <img className="hero-bg loaded" src={bannerImage} alt="" aria-hidden="true" />
+    <main className="page-shell">
+      <section className="hero-panel">
+        {heroImage ? (
+          <img
+            className="hero-bg loaded"
+            src={heroImage}
+            alt=""
+            aria-hidden="true"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+          />
+        ) : null}
         <div className="hero-bg-overlay" />
+        <div className="hero-vignette" />
 
-        <div className="profile-ring">
-          <img className="profile-img" src={profileImage} alt="Profil" />
-        </div>
-
-        <h1>Sakina&apos;s party</h1>
-        <p className="subtitle">Xatirələr &amp; Anılar</p>
-
-        <div className="divider">
-          <div className="divider-line" />
-          <span className="divider-ornament">✦</span>
-          <div className="divider-line" />
+        <div className="hero-copy">
+          {profileImage ? (
+            <div className="hero-profile">
+              <img src={profileImage} alt="Profile" loading="eager" decoding="async" />
+            </div>
+          ) : null}
+          <span className="hero-date">18.03.2026</span>
+          <h1>Sakina&apos;s Party</h1>
         </div>
       </section>
 
-      <div className="gallery-wrapper">
-        <div className="gallery">
-          {images.map((image, index) => (
-            <div
-              key={image.id}
-              className="gallery-item visible"
-              style={{ animationDelay: `${Math.min(index * 30, 800)}ms` }}
-              onClick={() => setLightboxIndex(index)}
-            >
-              <img src={image.url} alt={image.name} loading="lazy" />
-              <div className="overlay">
-                <div className="card-actions">
-                  <button
-                    className="download-btn"
-                    type="button"
-                    aria-label={`${image.name} yüklə`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDownload(image);
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                  </button>
+      <section className="gallery-shell">
+        <div className="gallery-wrapper">
+          <div className="gallery">
+            {visibleImages.map((image, index) => (
+              <article
+                key={image.id}
+                className="gallery-item visible"
+                style={{ animationDelay: `${Math.min(index * 22, 700)}ms` }}
+                onClick={() => setLightboxIndex(index)}
+              >
+                <img src={image.url} alt={image.name} loading="lazy" decoding="async" />
+                <div className="overlay">
+                  <div className="card-actions">
+                    <button
+                      className="card-icon"
+                      type="button"
+                      aria-label={`${image.name} yüklə`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDownload(image);
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </article>
+            ))}
+          </div>
+
+          {renderedCount < images.length ? <div ref={loadMoreRef} className="gallery-sentinel" /> : null}
+
+          {images.length === 0 ? <div className="empty-state">Hələ şəkil yüklənməyib.</div> : null}
         </div>
-
-        {images.length === 0 ? <div className="empty-state">Hələ şəkil yüklənməyib.</div> : null}
-      </div>
-
-      <footer>Made with love · Sakina&apos;s Party 2026</footer>
+      </section>
 
       <div
         className={`lightbox${currentImage ? " active" : ""}`}
@@ -166,8 +190,8 @@ export function GalleryClient({
           &#8250;
         </button>
 
-        {currentImage ? <img src={currentImage.url} alt={currentImage.name} /> : null}
+        {currentImage ? <img src={currentImage.previewUrl} alt={currentImage.name} decoding="async" /> : null}
       </div>
-    </>
+    </main>
   );
 }

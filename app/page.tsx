@@ -4,11 +4,5 @@ import { bannerImageUrl, getGalleryImages, profileImageUrl } from "../lib/galler
 export default async function HomePage() {
   const images = await getGalleryImages();
 
-  return (
-    <GalleryClient
-      bannerImage={bannerImageUrl}
-      images={images}
-      profileImage={profileImageUrl}
-    />
-  );
+  return <GalleryClient bannerImage={bannerImageUrl} images={images} profileImage={profileImageUrl} />;
 }
