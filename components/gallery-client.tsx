@@ -10,39 +10,14 @@ type GalleryClientProps = {
 };
 
 export function GalleryClient({ bannerImage, images, profileImage }: GalleryClientProps) {
-  const heroImageRef = useRef<HTMLImageElement | null>(null);
-  const profileImageRef = useRef<HTMLImageElement | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [heroLoaded, setHeroLoaded] = useState(!bannerImage);
-  const [profileLoaded, setProfileLoaded] = useState(!profileImage);
   const [renderedCount, setRenderedCount] = useState(24);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const heroImage = bannerImage || images[0]?.url || "";
-  const galleryReady = heroLoaded && profileLoaded;
 
   useEffect(() => {
     setRenderedCount(24);
   }, [images.length]);
-
-  useEffect(() => {
-    setHeroLoaded(!heroImage);
-  }, [heroImage]);
-
-  useEffect(() => {
-    setProfileLoaded(!profileImage);
-  }, [profileImage]);
-
-  useEffect(() => {
-    const heroNode = heroImageRef.current;
-    if (heroNode?.complete && heroNode.naturalWidth > 0) {
-      setHeroLoaded(true);
-    }
-
-    const profileNode = profileImageRef.current;
-    if (profileNode?.complete && profileNode.naturalWidth > 0) {
-      setProfileLoaded(true);
-    }
-  }, [heroImage, profileImage]);
 
   useEffect(() => {
     if (lightboxIndex === null) {
@@ -82,7 +57,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
   useEffect(() => {
     const node = loadMoreRef.current;
 
-    if (!galleryReady || !node || renderedCount >= images.length) {
+    if (!node || renderedCount >= images.length) {
       return;
     }
 
@@ -103,7 +78,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
     return () => {
       observer.disconnect();
     };
-  }, [galleryReady, images.length, renderedCount]);
+  }, [images.length, renderedCount]);
 
   function handleDownload(image: GalleryImage) {
     const anchor = document.createElement("a");
@@ -122,16 +97,13 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
       <section className="hero-panel">
         {heroImage ? (
           <img
-            ref={heroImageRef}
-            className={`hero-bg${heroLoaded ? " loaded" : ""}`}
+            className="hero-bg loaded"
             src={heroImage}
             alt=""
             aria-hidden="true"
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            onLoad={() => setHeroLoaded(true)}
-            onError={() => setHeroLoaded(true)}
           />
         ) : null}
         <div className="hero-bg-overlay" />
@@ -140,16 +112,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
         <div className="hero-copy">
           {profileImage ? (
             <div className="hero-profile">
-              <img
-                ref={profileImageRef}
-                src={profileImage}
-                alt="Profile"
-                fetchPriority="high"
-                loading="eager"
-                decoding="async"
-                onLoad={() => setProfileLoaded(true)}
-                onError={() => setProfileLoaded(true)}
-              />
+              <img src={profileImage} alt="Profile" loading="eager" decoding="async" />
             </div>
           ) : null}
           <span className="hero-date">18.03.2026</span>
@@ -160,8 +123,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
       <section className="gallery-shell">
         <div className="gallery-wrapper">
           <div className="gallery">
-            {galleryReady
-              ? visibleImages.map((image, index) => (
+            {visibleImages.map((image, index) => (
               <article
                 key={image.id}
                 className="gallery-item visible"
@@ -196,11 +158,10 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
                   </div>
                 </div>
               </article>
-                ))
-              : null}
+            ))}
           </div>
 
-          {galleryReady && renderedCount < images.length ? <div ref={loadMoreRef} className="gallery-sentinel" /> : null}
+          {renderedCount < images.length ? <div ref={loadMoreRef} className="gallery-sentinel" /> : null}
 
           {images.length === 0 ? <div className="empty-state">Hələ şəkil yüklənməyib.</div> : null}
         </div>
