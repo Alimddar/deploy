@@ -5,6 +5,8 @@ export type GalleryImage = {
   name: string;
   url: string;
   previewUrl: string;
+  srcSet: string;
+  sizes: string;
 };
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
@@ -21,6 +23,8 @@ export function buildOptimizedUrl(fileName: string, width: number, quality = 72)
 
 export const bannerImageUrl = buildOptimizedUrl("Banner.JPG", 1800, 78);
 export const profileImageUrl = buildOptimizedUrl("Profile.JPG", 320, 82);
+const gallerySizes =
+  "(max-width: 700px) calc((100vw - 2.75rem) / 2), (max-width: 980px) calc((100vw - 3.35rem) / 2), calc((100vw - 5.8rem) / 3)";
 
 export async function getGalleryImages(): Promise<GalleryImage[]> {
   return galleryImageNames
@@ -28,7 +32,13 @@ export async function getGalleryImages(): Promise<GalleryImage[]> {
     .map((fileName) => ({
       id: fileName,
       name: fileName,
-      url: buildOptimizedUrl(fileName, 760, 68),
-      previewUrl: buildOptimizedUrl(fileName, 1600, 80)
+      url: buildOptimizedUrl(fileName, 560, 60),
+      previewUrl: buildOptimizedUrl(fileName, 1600, 80),
+      srcSet: [
+        `${buildOptimizedUrl(fileName, 360, 56)} 360w`,
+        `${buildOptimizedUrl(fileName, 560, 60)} 560w`,
+        `${buildOptimizedUrl(fileName, 860, 66)} 860w`
+      ].join(", "),
+      sizes: gallerySizes
     }));
 }

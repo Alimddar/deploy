@@ -130,7 +130,14 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
                 style={{ animationDelay: `${Math.min(index * 22, 700)}ms` }}
                 onClick={() => setLightboxIndex(index)}
               >
-                <img src={image.url} alt={image.name} loading="lazy" decoding="async" />
+                <img
+                  src={image.url}
+                  srcSet={image.srcSet}
+                  sizes={image.sizes}
+                  alt={image.name}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <div className="overlay">
                   <div className="card-actions">
                     <button
