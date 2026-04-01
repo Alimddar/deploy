@@ -3,11 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { GalleryImage } from "../lib/gallery";
 
-const INITIAL_BATCH_SIZE = 18;
-const FOLLOW_UP_BATCH_SIZE = 24;
-const FOLLOW_UP_DELAY_MS = 180;
-const PREFETCH_COUNT = 14;
-
 type GalleryClientProps = {
   bannerImage: string;
   images: GalleryImage[];
@@ -15,41 +10,14 @@ type GalleryClientProps = {
 };
 
 export function GalleryClient({ bannerImage, images, profileImage }: GalleryClientProps) {
-  const [heroLoaded, setHeroLoaded] = useState(false);
-  const [profileLoaded, setProfileLoaded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [renderedCount, setRenderedCount] = useState(0);
+  const [renderedCount, setRenderedCount] = useState(24);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const heroImage = bannerImage || images[0]?.url || "";
-  const criticalReady = (!heroImage || heroLoaded) && (!profileImage || profileLoaded);
 
   useEffect(() => {
-    setHeroLoaded(false);
-  }, [heroImage]);
-
-  useEffect(() => {
-    setProfileLoaded(false);
-  }, [profileImage]);
-
-  useEffect(() => {
-    if (!criticalReady) {
-      setRenderedCount(0);
-      return;
-    }
-
-    setRenderedCount(Math.min(INITIAL_BATCH_SIZE, images.length));
-    const firstWave = window.setTimeout(() => {
-      setRenderedCount((current) => Math.min(Math.max(current, INITIAL_BATCH_SIZE) + FOLLOW_UP_BATCH_SIZE, images.length));
-    }, FOLLOW_UP_DELAY_MS);
-    const secondWave = window.setTimeout(() => {
-      setRenderedCount((current) => Math.min(Math.max(current, INITIAL_BATCH_SIZE + FOLLOW_UP_BATCH_SIZE) + FOLLOW_UP_BATCH_SIZE, images.length));
-    }, FOLLOW_UP_DELAY_MS * 2);
-
-    return () => {
-      window.clearTimeout(firstWave);
-      window.clearTimeout(secondWave);
-    };
-  }, [criticalReady, images.length]);
+    setRenderedCount(24);
+  }, [images.length]);
 
   useEffect(() => {
     if (lightboxIndex === null) {
@@ -87,28 +55,9 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
   }, [images.length, lightboxIndex]);
 
   useEffect(() => {
-    if (!criticalReady) {
-      return;
-    }
-
-    const prefetchedImages = images.slice(0, PREFETCH_COUNT).map((image) => {
-      const nextImage = new window.Image();
-      nextImage.decoding = "async";
-      nextImage.src = image.url;
-      return nextImage;
-    });
-
-    return () => {
-      prefetchedImages.forEach((image) => {
-        image.src = "";
-      });
-    };
-  }, [criticalReady, images]);
-
-  useEffect(() => {
     const node = loadMoreRef.current;
 
-    if (!criticalReady || !node || renderedCount >= images.length) {
+    if (!node || renderedCount >= images.length) {
       return;
     }
 
@@ -129,7 +78,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
     return () => {
       observer.disconnect();
     };
-  }, [criticalReady, images.length, renderedCount]);
+  }, [images.length, renderedCount]);
 
   function handleDownload(image: GalleryImage) {
     const anchor = document.createElement("a");
@@ -148,15 +97,13 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
       <section className="hero-panel">
         {heroImage ? (
           <img
-            className={`hero-bg${heroLoaded ? " loaded" : ""}`}
+            className="hero-bg loaded"
             src={heroImage}
             alt=""
             aria-hidden="true"
             fetchPriority="high"
             loading="eager"
             decoding="async"
-            onLoad={() => setHeroLoaded(true)}
-            onError={() => setHeroLoaded(true)}
           />
         ) : null}
         <div className="hero-bg-overlay" />
@@ -165,15 +112,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
         <div className="hero-copy">
           {profileImage ? (
             <div className="hero-profile">
-              <img
-                src={profileImage}
-                alt="Profile"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                onLoad={() => setProfileLoaded(true)}
-                onError={() => setProfileLoaded(true)}
-              />
+              <img src={profileImage} alt="Profile" loading="eager" decoding="async" />
             </div>
           ) : null}
           <span className="hero-date">18.03.2026</span>
@@ -181,7 +120,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
         </div>
       </section>
 
-      <section className={`gallery-shell${criticalReady ? " ready" : ""}`}>
+      <section className="gallery-shell">
         <div className="gallery-wrapper">
           <div className="gallery">
             {visibleImages.map((image, index) => (
@@ -191,13 +130,7 @@ export function GalleryClient({ bannerImage, images, profileImage }: GalleryClie
                 style={{ animationDelay: `${Math.min(index * 22, 700)}ms` }}
                 onClick={() => setLightboxIndex(index)}
               >
-                <img
-                  src={image.url}
-                  alt={image.name}
-                  loading={index < 8 ? "eager" : "lazy"}
-                  fetchPriority={index < 4 ? "high" : "auto"}
-                  decoding="async"
-                />
+                <img src={image.url} alt={image.name} loading="lazy" decoding="async" />
                 <div className="overlay">
                   <div className="card-actions">
                     <button
