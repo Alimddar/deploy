@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "generate:variants": "node scripts/generate-variants.mjs"
+    "generate:variants": "node scripts/generate-variants.mjs",
+    "fix:variant-acls": "node scripts/fix-variant-acls.mjs"
   },
   "dependencies": {
     "next": "latest",
