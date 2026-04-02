@@ -17,12 +17,22 @@ export function buildAwsUrl(fileName: string) {
   return `${AWS_BASE_URL}/${encodeURIComponent(fileName)}`;
 }
 
+/**
+ * URL for a pre-generated S3 variant (created by scripts/generate-variants.mjs).
+ * These are served directly from S3 — no server processing required.
+ */
+function buildVariantUrl(fileName: string, folder: "thumb" | "lightbox") {
+  return `${AWS_BASE_URL}/variants/${folder}/${encodeURIComponent(fileName)}.webp`;
+}
+
 export function buildOptimizedUrl(fileName: string, width: number, quality = 72) {
   return `/api/image?file=${encodeURIComponent(fileName)}&w=${width}&q=${quality}`;
 }
 
+// Banner and profile are still processed on-demand (only 2 images, cached after first load)
 export const bannerImageUrl = buildOptimizedUrl("Banner.JPG", 1800, 78);
 export const profileImageUrl = buildOptimizedUrl("Profile.JPG", 320, 82);
+
 const gallerySizes =
   "(max-width: 700px) calc((100vw - 2.75rem) / 2), (max-width: 980px) calc((100vw - 3.35rem) / 2), calc((100vw - 5.8rem) / 3)";
 
@@ -32,12 +42,13 @@ export async function getGalleryImages(): Promise<GalleryImage[]> {
     .map((fileName) => ({
       id: fileName,
       name: fileName,
-      url: buildOptimizedUrl(fileName, 560, 60),
-      previewUrl: buildOptimizedUrl(fileName, 1600, 80),
+      // Served directly from S3 — 640px WebP, ~100-200 KB each
+      url: buildVariantUrl(fileName, "thumb"),
+      // Lightbox — 1400px WebP, ~300-600 KB each
+      previewUrl: buildVariantUrl(fileName, "lightbox"),
       srcSet: [
-        `${buildOptimizedUrl(fileName, 360, 56)} 360w`,
-        `${buildOptimizedUrl(fileName, 560, 60)} 560w`,
-        `${buildOptimizedUrl(fileName, 860, 66)} 860w`
+        `${buildVariantUrl(fileName, "thumb")} 640w`,
+        `${buildVariantUrl(fileName, "lightbox")} 1400w`
       ].join(", "),
       sizes: gallerySizes
     }));
